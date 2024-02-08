@@ -15,8 +15,12 @@
     "get-port": "^5.1.1",
     "http-proxy": "^1.18.1",
     "http-proxy-middleware": "^2.0.6",
+    "https-proxy": "^0.0.2",
+    "lodash": "^4.17.21",
     "md5": "^2.3.0",
     "open": "^7.2.0",
+    "readable-stream-clone": "^0.0.7",
+    "stream-array": "^1.1.2",
     "superagent": "^8.1.2",
     "supertest": "^6.3.4",
     "urllib": "^2.41.0"

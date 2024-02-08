@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require('body-parser');
+const HttpsProxy = require('https-proxy');
 const { request } = require("urllib");
 const { createProxyMiddleware, fixRequestBody } = require("http-proxy-middleware");
 const getPort = require("get-port");
@@ -14,10 +15,6 @@ console.log('creds:', creds);
 const getServer = async () => {
 
   const app = express();
-  app.use(bodyParser.raw({
-    type: '*/*',
-  }));
-  // const port = await getPort();
   const port = 7035;
 
   const handleDigest = async ({ proxyRes, req, res }) => {
@@ -69,6 +66,7 @@ const getServer = async () => {
     ws: true,
     ejectPlugins: true,
     selfHandleResponse: true,
+    followRedirects: true,
     proxyTimeout: 60000,
     onProxyReq: (proxyReq, req, res) => {
 
