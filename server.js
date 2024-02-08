@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require('body-parser');
 const { request } = require("urllib");
-const { createProxyMiddleware } = require("http-proxy-middleware");
+const { createProxyMiddleware, fixRequestBody } = require("http-proxy-middleware");
 const getPort = require("get-port");
 
 const creds = {
@@ -9,7 +9,7 @@ const creds = {
   password: process.env.PASS,
 };
 
-console.log(creds);
+console.log('creds:', creds);
 
 const getServer = async () => {
 
@@ -33,7 +33,7 @@ const getServer = async () => {
       `https://192.168.97.4${req.originalUrl}`
     );
 
-    console.log('DIGEST REQ', req.url, req.body, req.content);
+    console.log('DIGEST REQ', req.url, req.body, req.__body, req.content);
 
     const requestOptions = {
       method: req.method,
@@ -44,8 +44,8 @@ const getServer = async () => {
       rejectUnauthorized: false,
     };
 
-    if (req.body?.type === 'Buffer') {
-      requestOptions.content = req.body.data;
+    if (req.__body?.type === 'Buffer') {
+      requestOptions.content = req.__body.data;
     }
 
     console.log('requestOptions', requestOptions);
@@ -71,6 +71,10 @@ const getServer = async () => {
     selfHandleResponse: true,
     onProxyReq: (proxyReq, req, res) => {
 
+      req.__body = req.body;
+
+      fixRequestBody(proxyReq, req);
+
       console.log('[Incoming Proxy Request]', JSON.stringify({
         method: req.method,
         url: req.url,
@@ -82,7 +86,7 @@ const getServer = async () => {
     onProxyRes: async (proxyRes, req, res) => {
       console.log("incoming proxyRes", req.url);
 
-      const digestResponse = await await handleDigest({
+      const digestResponse = await handleDigest({
         proxyRes,
         req,
         res,
