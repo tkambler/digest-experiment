@@ -69,6 +69,7 @@ const getServer = async () => {
     ws: true,
     ejectPlugins: true,
     selfHandleResponse: true,
+    proxyTimeout: 60000,
     onProxyReq: (proxyReq, req, res) => {
 
       req.__body = req.body;
