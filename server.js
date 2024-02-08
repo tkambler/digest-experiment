@@ -5,9 +5,11 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 const getPort = require("get-port");
 
 const creds = {
-  login: process.env.USERNAME,
-  password: process.env.PASSWORD,
+  login: process.env.USER,
+  password: process.env.PASS,
 };
+
+console.log(creds);
 
 const getServer = async () => {
 
@@ -15,7 +17,8 @@ const getServer = async () => {
   app.use(bodyParser.raw({
     type: '*/*',
   }));
-  const port = await getPort();
+  // const port = await getPort();
+  const port = 7035;
 
   const handleDigest = async ({ proxyRes, req, res }) => {
     if (proxyRes.headers["www-authenticate"] && proxyRes.statusCode === 401) {
@@ -32,17 +35,24 @@ const getServer = async () => {
 
     console.log('DIGEST REQ', req.url, req.body, req.content);
 
+    const requestOptions = {
+      method: req.method,
+      headers: req.headers,
+      digestAuth: `${creds.login}:${creds.password}`,
+      timeout: 30000,
+      streaming: true,
+      rejectUnauthorized: false,
+    };
+
+    if (req.body?.type === 'Buffer') {
+      requestOptions.content = req.body.data;
+    }
+
+    console.log('requestOptions', requestOptions);
+
     const { res: targetResult } = await request(
       `https://192.168.97.4${req.originalUrl}`,
-      {
-        method: req.method,
-        headers: req.headers,
-        content: req.body,
-        digestAuth: `${creds.login}:${creds.password}`,
-        timeout: 30000,
-        streaming: true,
-        rejectUnauthorized: false,
-      }
+      requestOptions,
     );
 
     return {
@@ -61,9 +71,12 @@ const getServer = async () => {
     selfHandleResponse: true,
     onProxyReq: (proxyReq, req, res) => {
 
-      console.log(`[Incoming Proxy Request] [${req.method}] ${req.url}`);
-
-      console.log('[BODY]', req.body);
+      console.log('[Incoming Proxy Request]', JSON.stringify({
+        method: req.method,
+        url: req.url,
+        headers: req.headers,
+        body: req.body,
+      }, null, 2));
 
     },
     onProxyRes: async (proxyRes, req, res) => {

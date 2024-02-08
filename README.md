@@ -1,3 +1,3 @@
 ```
-USERNAME=root PASSWORD="..." npm start
+USER=root PASS="..." npm start
 ```
