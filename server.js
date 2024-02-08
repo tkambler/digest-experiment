@@ -1,16 +1,11 @@
 const express = require("express");
-const bodyParser = require('body-parser');
-const HttpsProxy = require('https-proxy');
 const { request } = require("urllib");
 const { createProxyMiddleware, fixRequestBody } = require("http-proxy-middleware");
-const getPort = require("get-port");
 
 const creds = {
   login: process.env.USER,
   password: process.env.PASS,
 };
-
-console.log('creds:', creds);
 
 const getServer = async () => {
 
@@ -24,14 +19,6 @@ const getServer = async () => {
       return false;
     }
 
-    console.log(
-      "sending digest request:",
-      req.method,
-      `https://192.168.97.4${req.originalUrl}`
-    );
-
-    console.log('DIGEST REQ', req.url, req.body, req.__body, req.content);
-
     const requestOptions = {
       method: req.method,
       headers: req.headers,
@@ -44,8 +31,6 @@ const getServer = async () => {
     if (req.__body?.type === 'Buffer') {
       requestOptions.content = req.__body.data;
     }
-
-    console.log('requestOptions', requestOptions);
 
     const { res: targetResult } = await request(
       `https://192.168.97.4${req.originalUrl}`,
