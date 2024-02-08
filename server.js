@@ -1,5 +1,5 @@
 const express = require("express");
-const bodyParser = require('body-parser');
+const ReadableStreamClone = require("readable-stream-clone");
 const { request } = require("urllib");
 const { createProxyMiddleware, fixRequestBody } = require("http-proxy-middleware");
 const getPort = require("get-port");
@@ -11,12 +11,29 @@ const creds = {
 
 console.log('creds:', creds);
 
+const isDigestRequest = (proxyRes) => {
+  console.log('xxxxxxx', proxyRes.headers, proxyRes.statusCode);
+  return proxyRes.headers["www-authenticate"] && proxyRes.statusCode === 401;
+};
+
 const getServer = async () => {
 
   const app = express();
-  app.use(bodyParser.raw({
-    type: '*/*',
-  }));
+
+  app.use((req, res, next) => {
+    req._proxyReq = new ReadableStreamClone(req);
+    return next();
+  });
+
+  // app.use(bodyParser.json({
+  //   type: 'application/json',
+  // }));
+  // app.use(bodyParser.text({
+  //   type: 'text/plain',
+  // }));
+  // app.use(bodyParser.raw({
+  //   type: 'text/plain',
+  // }));
   // const port = await getPort();
   const port = 7035;
 
@@ -33,20 +50,44 @@ const getServer = async () => {
       `https://192.168.97.4${req.originalUrl}`
     );
 
-    console.log('DIGEST REQ', req.url, req.body, req.__body, req.content);
+    console.log('xxx req._proxyReq', req._proxyReq);
+
+    return new Promise(async (resolve) => {
+
+      console.log('reading...');
+
+      for await (const chunk of req._proxyReq) {
+        console.log('chunk', chunk);
+      }
+
+    });
+
+    console.log('DIGEST REQ', req.originalUrl, req.body);
+
+    async function streamToString(stream) {
+      // lets have a ReadableStream as a stream variable
+      const chunks = [];
+  
+      for await (const chunk of stream) {
+          chunks.push(Buffer.from(chunk));
+      }
+  
+      return Buffer.concat(chunks).toString("utf-8");
+  }
+
+  console.log('here we go');
+  const x = await streamToString(req.proxyReq);
+  console.log('x123', x);
 
     const requestOptions = {
       method: req.method,
       headers: req.headers,
       digestAuth: `${creds.login}:${creds.password}`,
-      timeout: 30000,
+      timeout: 60000,
       streaming: true,
+      stream: req.proxyReq,
       rejectUnauthorized: false,
     };
-
-    if (req.__body?.type === 'Buffer') {
-      requestOptions.content = req.__body.data;
-    }
 
     console.log('requestOptions', requestOptions);
 
@@ -67,13 +108,15 @@ const getServer = async () => {
     changeOrigin: true,
     secure: false,
     ws: true,
-    ejectPlugins: true,
+    // ejectPlugins: true,
     selfHandleResponse: true,
     onProxyReq: (proxyReq, req, res) => {
 
-      req.__body = req.body;
+      // req.proxyReq = new ReadableStreamClone(proxyReq);
 
-      fixRequestBody(proxyReq, req);
+      // req.__body = req.body;
+
+      // fixRequestBody(proxyReq, req);
 
       console.log('[Incoming Proxy Request]', JSON.stringify({
         method: req.method,
@@ -84,7 +127,20 @@ const getServer = async () => {
 
     },
     onProxyRes: async (proxyRes, req, res) => {
+
       console.log("incoming proxyRes", req.url);
+
+      if (isDigestRequest(proxyRes)) {
+        console.log('digest request');
+        return;
+      }
+
+      res.set(proxyRes.headers);
+      res.status(proxyRes.statusCode);
+      return proxyRes.pipe(res);
+      // return proxyRes.pipe(res, {
+      //   end: true,
+      // });
 
       const digestResponse = await handleDigest({
         proxyRes,
