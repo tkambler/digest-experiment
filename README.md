@@ -1,5 +1,5 @@
 ```
-USER=root PASS="..." npm start
+USER=root PASS="..." IP="192.168.97.4" PROTOCOL=https npm start
 ```
 
 ## Related Resources
@@ -10,3 +10,6 @@ USER=root PASS="..." npm start
 - https://www.npmjs.com/package/body-parser
 - https://github.com/http-party/node-http-proxy/issues/1648
 - https://github.com/expressjs/express/issues/4939
+- https://github.com/AlexxIT/go2rtc/issues/415
+- https://ably.com/blog/websocket-authentication
+- https://github.com/python-websockets/websockets/issues/784
