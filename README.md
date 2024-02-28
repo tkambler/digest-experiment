@@ -1,5 +1,5 @@
 ```
-USER=root PASS="..." IP="192.168.97.4" PROTOCOL=https npm start
+npm start
 ```
 
 ## Related Resources
