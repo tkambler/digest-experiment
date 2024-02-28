@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 const {
   createProxyMiddleware,
   responseInterceptor,
@@ -15,6 +16,8 @@ const { convertStreamToBuffer, fixRequestBody } = require("./lib/util");
 const badResponseHeaders = ["authentication-info", "www-authenticate"];
 
 const app = express();
+
+app.use(cookieParser());
 
 app.use(
   bodyParser.raw({
@@ -62,28 +65,42 @@ app.use(
           })
         );
 
-        const handledResponseStream = await handleDigestRequest({
+        await handleDigestRequest({
           proxyRes,
           req,
+          res,
         });
 
-        if (res.writableEnded) {
-          return;
-        }
+        // if (res.writableEnded) {
+        //   return;
+        // }
 
-        for (const headerKey in handledResponseStream.headers) {
-          res.setHeader(headerKey, handledResponseStream.headers[headerKey]);
+        for (const headerKey in proxyRes.headers) {
+          res.setHeader(headerKey, proxyRes.headers[headerKey]);
         }
 
         for (const k of badResponseHeaders) {
           res.removeHeader(k);
         }
 
-        res.status(handledResponseStream.statusCode);
-        res.statusMessage = handledResponseStream.statusMessage;
+        res.status(proxyRes.statusCode);
+        res.statusMessage = proxyRes.statusMessage;
 
-        // return convertStreamToBuffer(handledResponseStream);
-        handledResponseStream.pipe(res);
+        proxyRes.pipe(res);
+
+        // for (const headerKey in handledResponseStream.headers) {
+        //   res.setHeader(headerKey, handledResponseStream.headers[headerKey]);
+        // }
+
+        // for (const k of badResponseHeaders) {
+        //   res.removeHeader(k);
+        // }
+
+        // res.status(handledResponseStream.statusCode);
+        // res.statusMessage = handledResponseStream.statusMessage;
+
+        // // return convertStreamToBuffer(handledResponseStream);
+        // handledResponseStream.pipe(res);
       } else {
 
         console.log(
@@ -95,9 +112,9 @@ app.use(
           })
         );
 
-        if (res.writableEnded) {
-          return;
-        }
+        // if (res.writableEnded) {
+        //   return;
+        // }
 
         for (const headerKey in proxyRes.headers) {
           res.setHeader(headerKey, proxyRes.headers[headerKey]);
